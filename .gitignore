@@ -5,3 +5,6 @@ dist
 
 # Local Claude Code tooling (not part of the sim)
 .claude/launch.json
+
+# JetBrains IDE (local, machine-specific)
+.idea/
