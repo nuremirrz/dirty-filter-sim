@@ -11,7 +11,7 @@ const REQUIRED_OBJECTS = ['house_shell', 'supply_duct', 'return_grille', 'filter
 /**
  * Loads house_hvac.glb (plain GLTFLoader, no Draco), adds it to the scene,
  * logs the scene hierarchy, verifies the required named objects exist, and
- * frames the camera on the model.
+ * tints the debug objects. (Camera framing is handled by the overview preset.)
  */
 export function loadModel(ctx: SceneContext): void {
   const loader = new GLTFLoader()
@@ -28,7 +28,6 @@ export function loadModel(ctx: SceneContext): void {
       logHierarchy(gltf.scene)
       checkRequiredObjects(gltf.scene)
       highlightDebugObjects(gltf.scene)
-      frameCamera(ctx, gltf.scene)
     },
     undefined,
     (error) => {
@@ -119,28 +118,4 @@ function logObjectInfo(name: string, obj: THREE.Object3D): void {
   console.log(`     worldPos: ${v(worldPos)}`)
   console.log(`     bbox size: ${v(size)}`)
   console.log(`     bbox center: ${v(center)}`)
-}
-
-/**
- * Centers and frames the camera on the loaded model using its bounding box,
- * so the whole house is in view without hunting for it manually.
- */
-function frameCamera(ctx: SceneContext, model: THREE.Object3D): void {
-  const box = new THREE.Box3().setFromObject(model)
-  const size = box.getSize(new THREE.Vector3())
-  const center = box.getCenter(new THREE.Vector3())
-
-  const maxDim = Math.max(size.x, size.y, size.z)
-  const fov = ctx.camera.fov * (Math.PI / 180)
-  const distance = (maxDim / (2 * Math.tan(fov / 2))) * 1.5 // *1.5 = padding
-
-  const dir = new THREE.Vector3(1, 0.7, 1).normalize()
-  ctx.camera.position.copy(center).addScaledVector(dir, distance)
-  ctx.camera.near = Math.max(distance / 100, 0.01)
-  ctx.camera.far = distance * 100
-  ctx.camera.updateProjectionMatrix()
-  ctx.camera.lookAt(center)
-
-  ctx.controls.target.copy(center)
-  ctx.controls.update()
 }
