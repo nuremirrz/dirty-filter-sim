@@ -21,10 +21,13 @@ export function loadModel(ctx: SceneContext): void {
     MODEL_URL,
     (gltf) => {
       ctx.scene.add(gltf.scene)
+      // Refresh world matrices so getWorldPosition / bounding boxes are accurate.
+      ctx.scene.updateMatrixWorld(true)
       console.log('✅ Model loaded')
 
       logHierarchy(gltf.scene)
       checkRequiredObjects(gltf.scene)
+      highlightDebugObjects(gltf.scene)
       frameCamera(ctx, gltf.scene)
     },
     undefined,
@@ -59,6 +62,63 @@ function checkRequiredObjects(root: THREE.Object3D): void {
       console.error(`❌ MISSING: ${name}`)
     }
   }
+}
+
+// TEMPORARY debug tints so the interactive objects are easy to spot.
+// house_shell is intentionally left untouched (stays grey).
+const DEBUG_TINTS: { name: string; color: number }[] = [
+  { name: 'supply_duct', color: 0x2196f3 }, // blue
+  { name: 'return_grille', color: 0xf44336 }, // red
+  { name: 'filter', color: 0xffeb3b }, // yellow
+]
+
+/**
+ * Recolors the debug objects (via cloned materials, geometry untouched) and
+ * logs each one's world position + bounding-box size for later camera setup.
+ */
+function highlightDebugObjects(root: THREE.Object3D): void {
+  console.log('--- Debug highlight + coordinates ---')
+  for (const { name, color } of DEBUG_TINTS) {
+    const obj = root.getObjectByName(name)
+    if (!obj) {
+      console.warn(`⚠️ cannot highlight, missing: ${name}`)
+      continue
+    }
+    tintObject(obj, color)
+    logObjectInfo(name, obj)
+  }
+  console.log('house_shell: left as-is (grey)')
+}
+
+/** Clones the material(s) of every mesh under `obj` and sets their color. */
+function tintObject(obj: THREE.Object3D, color: number): void {
+  obj.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return
+    const recolor = (mat: THREE.Material): THREE.Material => {
+      const clone = mat.clone() as THREE.Material & { color?: THREE.Color }
+      if (clone.color) clone.color.setHex(color)
+      return clone
+    }
+    child.material = Array.isArray(child.material)
+      ? child.material.map(recolor)
+      : recolor(child.material)
+  })
+}
+
+/** Logs world position + bounding-box size/center of an object. */
+function logObjectInfo(name: string, obj: THREE.Object3D): void {
+  const fmt = (n: number) => n.toFixed(3)
+  const v = (vec: THREE.Vector3) => `(${fmt(vec.x)}, ${fmt(vec.y)}, ${fmt(vec.z)})`
+
+  const worldPos = obj.getWorldPosition(new THREE.Vector3())
+  const box = new THREE.Box3().setFromObject(obj)
+  const size = box.getSize(new THREE.Vector3())
+  const center = box.getCenter(new THREE.Vector3())
+
+  console.log(`📍 ${name}`)
+  console.log(`     worldPos: ${v(worldPos)}`)
+  console.log(`     bbox size: ${v(size)}`)
+  console.log(`     bbox center: ${v(center)}`)
 }
 
 /**

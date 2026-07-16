@@ -33,13 +33,19 @@ export function createScene(container: HTMLElement): SceneContext {
   renderer.setSize(window.innerWidth, window.innerHeight)
   container.appendChild(renderer.domElement)
 
-  // --- Lighting (so the house is actually visible) ---
-  const ambient = new THREE.AmbientLight(0xffffff, 0.7)
+  // --- Lighting (bright, so all interior details are clearly visible) ---
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9)
   scene.add(ambient)
 
-  const directional = new THREE.DirectionalLight(0xffffff, 1.2)
-  directional.position.set(5, 10, 7.5)
-  scene.add(directional)
+  // Key light: strong, from top-side.
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1.5)
+  keyLight.position.set(6, 10, 7.5)
+  scene.add(keyLight)
+
+  // Fill light: softer, from the opposite side, to lift shadows.
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.6)
+  fillLight.position.set(-7.5, 6, -6)
+  scene.add(fillLight)
 
   // --- Controls (TEMPORARY: debug only, remove once FNAF cameras exist) ---
   const controls = new OrbitControls(camera, renderer.domElement)
