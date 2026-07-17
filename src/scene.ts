@@ -1,11 +1,19 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 
 export interface SceneContext {
   scene: THREE.Scene
   camera: THREE.PerspectiveCamera
   renderer: THREE.WebGLRenderer
   controls: OrbitControls
+  /** Registers a per-frame callback. `dt` is seconds since the previous frame. */
+  onFrame: (cb: (dt: number) => void) => void
+  /** Outlines the given objects; pass an empty array to clear the outline. */
+  outline: (objects: THREE.Object3D[]) => void
 }
 
 /**
@@ -52,20 +60,55 @@ export function createScene(container: HTMLElement): SceneContext {
   controls.enableDamping = true
   controls.dampingFactor = 0.05
 
+  // --- Post-processing: outline for hovered interactive objects ---
+  const composer = new EffectComposer(renderer)
+  composer.addPass(new RenderPass(scene, camera))
+  const outlinePass = new OutlinePass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    scene,
+    camera,
+  )
+  outlinePass.edgeStrength = 4
+  outlinePass.edgeGlow = 0.4
+  outlinePass.edgeThickness = 1.5
+  outlinePass.visibleEdgeColor.set('#ffffff')
+  outlinePass.hiddenEdgeColor.set('#3a6ea5')
+  composer.addPass(outlinePass)
+  // Restores correct color space / tone mapping at the end of the chain.
+  composer.addPass(new OutputPass())
+
   // --- Resize handling ---
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight
     camera.updateProjectionMatrix()
     renderer.setSize(window.innerWidth, window.innerHeight)
+    composer.setSize(window.innerWidth, window.innerHeight)
+    outlinePass.resolution.set(window.innerWidth, window.innerHeight)
   })
 
   // --- Render loop ---
+  const frameCallbacks: ((dt: number) => void)[] = []
+  const clock = new THREE.Clock()
+
   function animate() {
     requestAnimationFrame(animate)
+    const dt = clock.getDelta()
+    for (const cb of frameCallbacks) cb(dt)
     controls.update()
-    renderer.render(scene, camera)
+    composer.render()
   }
   animate()
 
-  return { scene, camera, renderer, controls }
+  return {
+    scene,
+    camera,
+    renderer,
+    controls,
+    onFrame: (cb) => {
+      frameCallbacks.push(cb)
+    },
+    outline: (objects) => {
+      outlinePass.selectedObjects = objects
+    },
+  }
 }

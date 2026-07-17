@@ -6,14 +6,20 @@ import type { SceneContext } from './scene'
 const MODEL_URL = import.meta.env.BASE_URL + 'house_hvac.glb'
 
 // The objects the rest of the simulation will rely on. This is the main skeleton check.
-const REQUIRED_OBJECTS = ['house_shell', 'supply_duct', 'return_grille', 'filter']
+const REQUIRED_OBJECTS = [
+  'house_shell',
+  'supply_duct',
+  'return_grille',
+  'filter',
+  'anemometer',
+]
 
 /**
  * Loads house_hvac.glb (plain GLTFLoader, no Draco), adds it to the scene,
  * logs the scene hierarchy, verifies the required named objects exist, and
  * tints the debug objects. (Camera framing is handled by the overview preset.)
  */
-export function loadModel(ctx: SceneContext): void {
+export function loadModel(ctx: SceneContext, onLoaded?: () => void): void {
   const loader = new GLTFLoader()
   console.log(`Loading model: ${MODEL_URL}`)
 
@@ -28,6 +34,7 @@ export function loadModel(ctx: SceneContext): void {
       logHierarchy(gltf.scene)
       checkRequiredObjects(gltf.scene)
       highlightDebugObjects(gltf.scene)
+      onLoaded?.()
     },
     undefined,
     (error) => {
@@ -65,10 +72,11 @@ function checkRequiredObjects(root: THREE.Object3D): void {
 
 // TEMPORARY debug tints so the interactive objects are easy to spot.
 // house_shell is intentionally left untouched (stays grey).
+// The filter is deliberately absent: it keeps its own grey material, which is
+// what "dirty" looks like, and gets swapped for a light one once replaced.
 const DEBUG_TINTS: { name: string; color: number }[] = [
   { name: 'supply_duct', color: 0x2196f3 }, // blue
   { name: 'return_grille', color: 0xf44336 }, // red
-  { name: 'filter', color: 0xffeb3b }, // yellow
 ]
 
 /**
