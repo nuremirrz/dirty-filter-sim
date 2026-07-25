@@ -5,6 +5,8 @@ import { createHud } from './hud'
 import { createInteractions } from './interactive'
 import { createGrille } from './grille'
 import { createFilter } from './filter'
+import { createHints } from './labels'
+import { createResultOverlay } from './overlay'
 import { setLang, getInitialLang, initLocaleBridge, onChange, getLang, t } from './i18n'
 
 const container = document.getElementById('app')
@@ -35,6 +37,10 @@ createCameraSwitcher(ctx)
 const grille = createGrille(ctx)
 // The filter sits behind the grille, so it cannot be swapped until it is aside.
 const filter = createFilter(ctx, () => grille.isOpen())
-const hud = createHud(ctx, grille, filter)
+// 3D labels + active-object highlight, driven by the HUD's state changes.
+const hints = createHints(ctx)
+// Level-complete result card (shown on the final state; Restart reloads).
+const overlay = createResultOverlay()
+const hud = createHud(ctx, grille, filter, hints, overlay)
 createInteractions(ctx, grille, filter, hud)
 loadModel(ctx, () => hud.syncModel())

@@ -12,6 +12,8 @@ import { flyToCameraPresetByName, activeCameraPreset } from './cameras'
 import { createAnemometer } from './anemometer'
 import type { GrilleApi } from './grille'
 import type { FilterApi } from './filter'
+import type { HintsApi } from './labels'
+import type { OverlayApi } from './overlay'
 import { t, onChange } from './i18n'
 
 const TOTAL_STEPS = STATE_ORDER.length - 1 // overview is setup, not a numbered step
@@ -39,7 +41,13 @@ export interface HudApi {
  * drives the Problem 1 state machine. Camera cuts and the level-complete
  * postMessage fire on the relevant state entries.
  */
-export function createHud(ctx: SceneContext, grille: GrilleApi, filter: FilterApi): HudApi {
+export function createHud(
+  ctx: SceneContext,
+  grille: GrilleApi,
+  filter: FilterApi,
+  hints: HintsApi,
+  overlay: OverlayApi,
+): HudApi {
   // --- Top-center: progress + hint + anemometer ---
   const topPanel = document.createElement('div')
   topPanel.style.cssText = [
@@ -148,10 +156,14 @@ export function createHud(ctx: SceneContext, grille: GrilleApi, filter: FilterAp
   const machine = new StateMachine((state, data) => {
     measured = false
     paint(state, data)
+    hints.update(state) // move the 3D label + highlight onto this step's object
 
     if (data.cameraPreset) flyToCameraPresetByName(ctx, data.cameraPreset)
 
-    if (state === 'complete') notifyParentComplete()
+    if (state === 'complete') {
+      notifyParentComplete()
+      overlay.show() // banner (this hint) → 600 ms → result card
+    }
   })
 
   // A step is done when the world says so, not when a button was pressed. Both

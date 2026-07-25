@@ -12,8 +12,10 @@ export interface SceneContext {
   controls: OrbitControls
   /** Registers a per-frame callback. `dt` is seconds since the previous frame. */
   onFrame: (cb: (dt: number) => void) => void
-  /** Outlines the given objects; pass an empty array to clear the outline. */
+  /** Transient hover outline; pass an empty array to clear it. */
   outline: (objects: THREE.Object3D[]) => void
+  /** Persistent, pulsing hint outline for the step's active object (null = none). */
+  outlineHint: (object: THREE.Object3D | null) => void
 }
 
 /**
@@ -86,6 +88,10 @@ export function createScene(container: HTMLElement): SceneContext {
     outlinePass.resolution.set(window.innerWidth, window.innerHeight)
   })
 
+  // --- Outline state: transient hover set + a persistent hint, one OutlinePass ---
+  let hoverObjects: THREE.Object3D[] = []
+  let hintObject: THREE.Object3D | null = null
+
   // --- Render loop ---
   const frameCallbacks: ((dt: number) => void)[] = []
   const clock = new THREE.Clock()
@@ -95,6 +101,12 @@ export function createScene(container: HTMLElement): SceneContext {
     const dt = clock.getDelta()
     for (const cb of frameCallbacks) cb(dt)
     controls.update()
+
+    // hover + hint merged into the single OutlinePass (static white edge).
+    const selected = hoverObjects.slice()
+    if (hintObject && !selected.includes(hintObject)) selected.push(hintObject)
+    outlinePass.selectedObjects = selected
+
     composer.render()
   }
   animate()
@@ -108,7 +120,10 @@ export function createScene(container: HTMLElement): SceneContext {
       frameCallbacks.push(cb)
     },
     outline: (objects) => {
-      outlinePass.selectedObjects = objects
+      hoverObjects = objects
+    },
+    outlineHint: (object) => {
+      hintObject = object
     },
   }
 }
