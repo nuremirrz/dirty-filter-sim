@@ -234,13 +234,9 @@ export function createHud(
 
 /** Notifies the embedding platform (iframe host) that the level is done. */
 function notifyParentComplete(): void {
-  if (window.parent === window) {
-    console.log('🏁 complete (top-level: postMessage skipped, not embedded)')
-    return
-  }
+  if (window.parent === window) return
   window.parent.postMessage(
     { source: 'hvac-sim', type: 'level-complete', slug: 'dirty-filter' },
     '*',
   )
-  console.log('🏁 complete → postMessage sent to parent')
 }
