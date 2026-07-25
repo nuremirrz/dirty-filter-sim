@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import type { SceneContext } from './scene'
+import { t, onChange } from './i18n'
 
 export interface CameraPreset {
   name: string
@@ -151,7 +152,6 @@ export function createCameraSwitcher(ctx: SceneContext): void {
   ].join(';')
 
   const header = document.createElement('div')
-  header.textContent = '📷 Камеры'
   header.style.cssText = [
     'padding:8px 10px',
     'background:rgba(0,0,0,0.6)',
@@ -160,11 +160,22 @@ export function createCameraSwitcher(ctx: SceneContext): void {
   ].join(';')
   panel.appendChild(header)
 
+  // Keep button→preset pairs so captions can be re-localized without rebuilding.
+  const buttons: { el: HTMLButtonElement; preset: CameraPreset }[] = []
   for (const preset of CAMERA_PRESETS) {
-    const btn = makeButton(preset.name)
-    btn.addEventListener('click', () => flyToCameraPreset(ctx, preset))
-    panel.appendChild(btn)
+    const el = makeButton('')
+    el.addEventListener('click', () => flyToCameraPreset(ctx, preset)) // preset.name unchanged
+    panel.appendChild(el)
+    buttons.push({ el, preset })
   }
+
+  // Only the visible caption is localized; preset.name stays the identifier.
+  const fill = () => {
+    header.textContent = `📷 ${t('camera.panel')}`
+    for (const { el, preset } of buttons) el.textContent = t(`camera.${preset.name}`)
+  }
+  fill()
+  onChange(fill) // re-render on locale change (set-locale / ?lang)
 
   document.body.appendChild(panel)
 }

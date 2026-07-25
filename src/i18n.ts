@@ -46,6 +46,11 @@ const dict: Record<Lang, Record<string, Entry>> = {
     'overlay.points': '+100 points',
     'overlay.progress': 'Airflow restored to 2.5 m/s',
     'overlay.replay': 'Restart',
+    'camera.panel': 'Cameras',
+    'camera.system_overview': 'Overview',
+    'camera.supply_air': 'Supply',
+    'camera.return_air': 'Return',
+    'camera.air_filter': 'Filter',
   },
   ru: {
     'state.overview.hint': 'Осмотритесь. Начните с проверки подачи воздуха.',
@@ -78,6 +83,11 @@ const dict: Record<Lang, Record<string, Entry>> = {
     'overlay.points': '+100 очков',
     'overlay.progress': 'Поток восстановлен: 2.5 м/с',
     'overlay.replay': 'Заново',
+    'camera.panel': 'Камеры',
+    'camera.system_overview': 'Обзор',
+    'camera.supply_air': 'Подача',
+    'camera.return_air': 'Возврат',
+    'camera.air_filter': 'Фильтр',
   },
   es: {
     'state.overview.hint': 'Observa el entorno. Empieza revisando el suministro de aire.',
@@ -110,6 +120,11 @@ const dict: Record<Lang, Record<string, Entry>> = {
     'overlay.points': '+100 puntos',
     'overlay.progress': 'Flujo restaurado a 2.5 m/s',
     'overlay.replay': 'Reiniciar',
+    'camera.panel': 'Cámaras',
+    'camera.system_overview': 'Vista general',
+    'camera.supply_air': 'Suministro',
+    'camera.return_air': 'Retorno',
+    'camera.air_filter': 'Filtro',
   },
 }
 
