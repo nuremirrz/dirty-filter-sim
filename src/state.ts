@@ -67,13 +67,17 @@ export const STATE_DATA: Record<GameState, StateData> = {
   },
 }
 
-// Airflow the anemometer reads, in m/s. States absent from this map are not
-// measuring — the device is hidden there. Drives both the HUD readout and the
-// impeller spin speed, so the number lives in exactly one place.
-export const AIRFLOW_READINGS: Partial<Record<GameState, number>> = {
-  measure_low: 0.7,
-  measure_ok: 2.5,
-}
+// Airflow at the supply, in m/s. It depends on the filter, not on the step: a
+// dirty filter chokes the flow (low), a clean one restores it (healthy). The
+// anemometer reads whichever is physically true at the moment you measure.
+export const AIRFLOW_LOW = 0.7
+export const AIRFLOW_OK = 2.5
+
+/** Steps where the anemometer is deployed and a reading can be taken. */
+export const MEASURING_STATES: ReadonlySet<GameState> = new Set<GameState>([
+  'measure_low',
+  'measure_ok',
+])
 
 /** Healthy airflow range, in m/s — shown as the "Норма" hint under the readout. */
 export const AIRFLOW_NORM_MIN = 2
@@ -106,5 +110,13 @@ export class StateMachine {
       this.index += 1
       this.onChange(this.state, this.data)
     }
+  }
+
+  /** Jumps straight to a later state, skipping the steps in between. */
+  jumpTo(state: GameState): void {
+    const target = STATE_ORDER.indexOf(state)
+    if (target <= this.index) return // only ever skip forward
+    this.index = target
+    this.onChange(this.state, this.data)
   }
 }

@@ -1,18 +1,29 @@
 import { t, onChange } from './i18n'
-import { STATE_ORDER, STATE_DATA, AIRFLOW_NORM_MIN, AIRFLOW_NORM_MAX, type GameState } from './state'
+import { STATE_DATA, AIRFLOW_NORM_MIN, AIRFLOW_NORM_MAX, type GameState } from './state'
 
-// The level checklist. Each task is "done" once the flow reaches its threshold
-// state; when all are done the level is solved. Keeps the panel decoupled from
-// the state machine's internals — it just reads how far the flow has progressed.
-const TASKS: { key: string; doneFrom: GameState }[] = [
-  { key: 'task.check_supply', doneFrom: 'locate_grille' },
-  { key: 'task.replace_filter', doneFrom: 'close_grille' },
-  { key: 'task.remeasure', doneFrom: 'complete' },
+/** What the player has actually done, independent of where the guided flow sits. */
+export interface TaskProgress {
+  supplyMeasured: boolean
+  filterReplaced: boolean
+  airflowRechecked: boolean
+}
+
+// The checklist is keyed to real accomplishments, not the flow's position, so a
+// task done out of order — e.g. replacing the filter before the first reading —
+// still ticks the moment it actually happens.
+const TASKS: { key: string; done: (p: TaskProgress) => boolean }[] = [
+  { key: 'task.check_supply', done: (p) => p.supplyMeasured },
+  { key: 'task.replace_filter', done: (p) => p.filterReplaced },
+  { key: 'task.remeasure', done: (p) => p.airflowRechecked },
 ]
 
 export interface InfoPanelApi {
-  /** Reflects the current step + the taken reading (null = nothing measured yet). */
-  update: (state: GameState, reading: { value: number; ok: boolean } | null) => void
+  /** Reflects the current step, the taken reading, and what's been accomplished. */
+  update: (
+    state: GameState,
+    reading: { value: number; ok: boolean } | null,
+    progress: TaskProgress,
+  ) => void
 }
 
 const el = (tag: string, css: string): HTMLDivElement => {
@@ -90,6 +101,11 @@ export function createInfoPanel(): InfoPanelApi {
 
   let cur: GameState = 'overview'
   let curReading: { value: number; ok: boolean } | null = null
+  let curProgress: TaskProgress = {
+    supplyMeasured: false,
+    filterReplaced: false,
+    airflowRechecked: false,
+  }
 
   const fill = () => {
     eyebrow.textContent = t('ui.level')
@@ -99,10 +115,9 @@ export function createInfoPanel(): InfoPanelApi {
     hintHead.textContent = t('ui.hint')
     hintText.textContent = t(STATE_DATA[cur].hintKey)
 
-    const reached = STATE_ORDER.indexOf(cur)
     let done = 0
     taskRows.forEach((row, i) => {
-      const isDone = reached >= STATE_ORDER.indexOf(TASKS[i].doneFrom)
+      const isDone = TASKS[i].done(curProgress)
       if (isDone) done += 1
       row.mark.textContent = isDone ? '✅' : '⬜'
       row.label.textContent = t(TASKS[i].key)
@@ -124,9 +139,10 @@ export function createInfoPanel(): InfoPanelApi {
   onChange(fill) // re-render on locale change, even mid-level
 
   return {
-    update: (state, r) => {
+    update: (state, r, progress) => {
       cur = state
       curReading = r
+      curProgress = progress
       fill()
     },
   }

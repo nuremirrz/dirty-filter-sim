@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import type { SceneContext } from './scene'
-import { AIRFLOW_READINGS, type GameState } from './state'
 import { t } from './i18n'
 
 // Radians per second per m/s of airflow. Tuned for readability rather than
@@ -27,12 +26,13 @@ interface Screen {
 
 export interface AnemometerApi {
   /**
-   * Shows/hides the device and sets its impeller spin from `state`, and paints
-   * `revealed` on the LCD. The two are deliberately separate: the device is in
-   * the airflow (so it is visible and spinning) as soon as the step begins, but
-   * its screen stays blank until the player actually takes the reading.
+   * Shows/hides the device and spins its impeller at the current `airflow`, and
+   * paints `revealed` on the LCD. The two are deliberately separate: the device
+   * is in the airflow (visible and spinning at the real rate) as soon as the step
+   * begins, but its screen stays blank until the player takes the reading.
+   * `airflow` undefined means this isn't a measuring step, so the device hides.
    */
-  setState: (state: GameState, revealed: number | undefined) => void
+  setState: (airflow: number | undefined, revealed: number | undefined) => void
 }
 
 /**
@@ -63,9 +63,8 @@ export function createAnemometer(ctx: SceneContext): AnemometerApi {
   })
 
   return {
-    setState(state, revealed) {
+    setState(airflow, revealed) {
       resolveNodes()
-      const airflow = AIRFLOW_READINGS[state]
       const measuring = airflow !== undefined
       if (root) root.visible = measuring
       spinRate = measuring ? airflow * SPIN_PER_MS : 0

@@ -1,7 +1,9 @@
 import type { SceneContext } from './scene'
 import {
   StateMachine,
-  AIRFLOW_READINGS,
+  AIRFLOW_LOW,
+  AIRFLOW_OK,
+  MEASURING_STATES,
   AIRFLOW_NORM_MIN,
   AIRFLOW_NORM_MAX,
   type GameState,
@@ -70,14 +72,30 @@ export function createHud(
   // has to press "Замерить" first, and only the press after that moves on.
   let measured = false
 
+  // Latched accomplishments for the checklist — kept independent of the flow's
+  // position so an out-of-order action (e.g. replacing the filter before the
+  // first reading) still ticks its task the moment it happens.
+  let supplyMeasured = false
+  let airflowRechecked = false
+
   const paint = (state: GameState, data: StateData) => {
-    const airflow = AIRFLOW_READINGS[state]
+    // The reading is physical: a clean filter restores the flow, a dirty one
+    // chokes it. The step only decides whether the device is out to read at all.
+    const airflow = MEASURING_STATES.has(state)
+      ? filter.isReplaced()
+        ? AIRFLOW_OK
+        : AIRFLOW_LOW
+      : undefined
     const revealed = measured ? airflow : undefined
     const reading =
       revealed === undefined
         ? null
         : { value: revealed, ok: revealed >= AIRFLOW_NORM_MIN && revealed <= AIRFLOW_NORM_MAX }
-    infoPanel.update(state, reading)
+    infoPanel.update(state, reading, {
+      supplyMeasured,
+      filterReplaced: filter.isReplaced(),
+      airflowRechecked,
+    })
 
     // Once the reading is on screen, the button's job changes to "move on".
     const label =
@@ -93,7 +111,7 @@ export function createHud(
       actionBtn.style.display = 'none'
     }
 
-    anemometer.setState(state, revealed)
+    anemometer.setState(airflow, revealed)
   }
 
   const machine = new StateMachine((state, data) => {
@@ -120,16 +138,30 @@ export function createHud(
     close_grille: () => grille.isClosed(),
   }
 
+  // Advance on met objectives; also watch the filter, since replacing it by a
+  // direct click while the flow sits on an earlier step changes no game state —
+  // repaint so the checklist reflects it the moment the swap lands.
+  let lastReplaced = false
   ctx.onFrame(() => {
     if (objectives[machine.state]?.()) machine.advance()
+    if (filter.isReplaced() !== lastReplaced) {
+      lastReplaced = filter.isReplaced()
+      // A reading already on screen turns healthy the instant the filter swaps,
+      // which confirms the airflow is restored.
+      if (measured && filter.isReplaced()) airflowRechecked = true
+      paint(machine.state, machine.data)
+    }
   })
 
   // Taking the reading is one action with two triggers — this button and a click
   // on the device itself — so they cannot drift apart.
-  const canTakeReading = () => AIRFLOW_READINGS[machine.state] !== undefined && !measured
+  const canTakeReading = () => MEASURING_STATES.has(machine.state) && !measured
   const takeReading = () => {
     if (!canTakeReading()) return
     measured = true
+    supplyMeasured = true
+    // A healthy reading (clean filter) also confirms the airflow is restored.
+    if (filter.isReplaced()) airflowRechecked = true
     paint(machine.state, machine.data)
   }
 
@@ -157,7 +189,13 @@ export function createHud(
       case 'close_grille':
         grille.close()
         break
-      // Measuring steps have no object to act on, so "Далее" moves on directly.
+      case 'measure_low':
+        // If the airflow already reads healthy, the filter was fixed before
+        // diagnosing — the problem is solved, so skip straight to the finish.
+        if (filter.isReplaced()) machine.jumpTo('complete')
+        else machine.advance()
+        break
+      // measure_ok just moves on; the level completes on the next state.
       default:
         machine.advance()
     }
