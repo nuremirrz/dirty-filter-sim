@@ -1,6 +1,7 @@
 import { createScene } from './scene'
 import { loadModel } from './loader'
-import { applyStartCamera, initCameraMotion, createCameraSwitcher } from './cameras'
+import { applyStartCamera, initCameraMotion } from './cameras'
+import { createCameraStrip } from './camerastrip'
 import { createHud } from './hud'
 import { createInteractions } from './interactive'
 import { createGrille } from './grille'
@@ -32,7 +33,8 @@ onChange(applyDocumentMeta)
 const ctx = createScene(container)
 initCameraMotion(ctx)
 applyStartCamera(ctx)
-createCameraSwitcher(ctx)
+// Bottom camera strip: thumbnail per preset (stills captured after the load).
+const cameraStrip = createCameraStrip(ctx)
 // Shared props: the scripted buttons and direct clicks drive the same objects.
 const grille = createGrille(ctx)
 // The filter sits behind the grille, so it cannot be swapped until it is aside.
@@ -43,4 +45,7 @@ const hints = createHints(ctx)
 const overlay = createResultOverlay()
 const hud = createHud(ctx, grille, filter, hints, overlay)
 createInteractions(ctx, grille, filter, hud)
-loadModel(ctx, () => hud.syncModel())
+loadModel(ctx, () => {
+  hud.syncModel()
+  cameraStrip.capture() // snapshot each preset now the model is in the scene
+})

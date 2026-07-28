@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import type { SceneContext } from './scene'
-import { t, onChange } from './i18n'
 
 export interface CameraPreset {
   name: string
@@ -111,71 +110,4 @@ export function flyToCameraPresetByName(ctx: SceneContext, name: string): boolea
   if (!preset) return false
   flyToCameraPreset(ctx, preset)
   return true
-}
-
-/** A styled button for the camera panel. */
-function makeButton(label: string): HTMLButtonElement {
-  const btn = document.createElement('button')
-  btn.textContent = label
-  btn.style.cssText = [
-    'padding:8px 10px',
-    'background:#333',
-    'color:#fff',
-    'border:1px solid #555',
-    'border-radius:6px',
-    'cursor:pointer',
-    'font:inherit',
-    'text-align:left',
-  ].join(';')
-  btn.addEventListener('mouseenter', () => (btn.style.background = '#444'))
-  btn.addEventListener('mouseleave', () => (btn.style.background = '#333'))
-  return btn
-}
-
-/**
- * Fixed-camera panel (bottom-right): one button per preset that flies the camera
- * to it. Buttons are labelled with the preset names.
- */
-export function createCameraSwitcher(ctx: SceneContext): void {
-  const panel = document.createElement('div')
-  panel.style.cssText = [
-    'position:fixed',
-    'bottom:12px',
-    'right:12px',
-    'z-index:10',
-    'display:flex',
-    'flex-direction:column',
-    'gap:8px',
-    'min-width:180px',
-    'font-family:system-ui,-apple-system,sans-serif',
-    'font-size:13px',
-  ].join(';')
-
-  const header = document.createElement('div')
-  header.style.cssText = [
-    'padding:8px 10px',
-    'background:rgba(0,0,0,0.6)',
-    'color:#eee',
-    'border-radius:6px',
-  ].join(';')
-  panel.appendChild(header)
-
-  // Keep button→preset pairs so captions can be re-localized without rebuilding.
-  const buttons: { el: HTMLButtonElement; preset: CameraPreset }[] = []
-  for (const preset of CAMERA_PRESETS) {
-    const el = makeButton('')
-    el.addEventListener('click', () => flyToCameraPreset(ctx, preset)) // preset.name unchanged
-    panel.appendChild(el)
-    buttons.push({ el, preset })
-  }
-
-  // Only the visible caption is localized; preset.name stays the identifier.
-  const fill = () => {
-    header.textContent = `📷 ${t('camera.panel')}`
-    for (const { el, preset } of buttons) el.textContent = t(`camera.${preset.name}`)
-  }
-  fill()
-  onChange(fill) // re-render on locale change (set-locale / ?lang)
-
-  document.body.appendChild(panel)
 }
