@@ -35,6 +35,21 @@ export const CAMERA_PRESETS: CameraPreset[] = [
 // already looking through a given object's camera.
 let activePreset: string | null = null
 
+// Fires whenever the camera is sent to a preset (cut or flight). The inspect
+// view listens so it can drop its "closer look" state once the camera leaves.
+const presetListeners = new Set<() => void>()
+
+/** Subscribes to "camera sent to a preset" events; returns an unsubscribe fn. */
+export function onPresetFly(cb: () => void): () => void {
+  presetListeners.add(cb)
+  return () => presetListeners.delete(cb)
+}
+
+function goToPreset(name: string): void {
+  activePreset = name
+  for (const cb of presetListeners) cb()
+}
+
 /** Name of the preset the camera was last sent to, if any. */
 export function activeCameraPreset(): string | null {
   return activePreset
@@ -42,7 +57,7 @@ export function activeCameraPreset(): string | null {
 
 /** Snaps the camera + OrbitControls target to a preset pose (instant cut). */
 export function applyCameraPreset(ctx: SceneContext, preset: CameraPreset): void {
-  activePreset = preset.name
+  goToPreset(preset.name)
   ctx.camera.position.set(preset.position.x, preset.position.y, preset.position.z)
   ctx.controls.target.set(preset.target.x, preset.target.y, preset.target.z)
   ctx.controls.update()
@@ -93,12 +108,26 @@ export function flyToCameraPreset(
   preset: CameraPreset,
   duration = 0.8,
 ): void {
-  activePreset = preset.name
+  goToPreset(preset.name)
+  flyToPose(ctx, preset.position, preset.target, duration)
+}
+
+/**
+ * Flies to an arbitrary pose without changing the active preset. Used by the
+ * inspect view to close in on the current station's object and back out again,
+ * so the strip/breadcrumbs keep showing that station throughout.
+ */
+export function flyToPose(
+  ctx: SceneContext,
+  position: { x: number; y: number; z: number },
+  target: { x: number; y: number; z: number },
+  duration = 0.6,
+): void {
   flight = {
     fromPos: ctx.camera.position.clone(),
-    toPos: new THREE.Vector3(preset.position.x, preset.position.y, preset.position.z),
+    toPos: new THREE.Vector3(position.x, position.y, position.z),
     fromTarget: ctx.controls.target.clone(),
-    toTarget: new THREE.Vector3(preset.target.x, preset.target.y, preset.target.z),
+    toTarget: new THREE.Vector3(target.x, target.y, target.z),
     elapsed: 0,
     duration,
   }

@@ -59,6 +59,9 @@ const dict: Record<Lang, Record<string, Entry>> = {
     'task.check_supply': 'Measure supply airflow',
     'task.replace_filter': 'Replace the dirty filter',
     'task.remeasure': 'Re-check the airflow',
+    'ui.inspect': 'Inspect',
+    'ui.back_to_camera': 'Back to camera (Esc)',
+    'ui.map': 'Map',
   },
   ru: {
     'state.overview.hint': 'Осмотритесь. Начните с проверки подачи воздуха.',
@@ -104,6 +107,9 @@ const dict: Record<Lang, Record<string, Entry>> = {
     'task.check_supply': 'Замерить поток у подачи',
     'task.replace_filter': 'Заменить грязный фильтр',
     'task.remeasure': 'Проверить поток снова',
+    'ui.inspect': 'Осмотр',
+    'ui.back_to_camera': 'Назад к камере (Esc)',
+    'ui.map': 'Карта',
   },
   es: {
     'state.overview.hint': 'Observa el entorno. Empieza revisando el suministro de aire.',
@@ -149,6 +155,9 @@ const dict: Record<Lang, Record<string, Entry>> = {
     'task.check_supply': 'Medir el flujo en el suministro',
     'task.replace_filter': 'Reemplazar el filtro sucio',
     'task.remeasure': 'Volver a medir el flujo',
+    'ui.inspect': 'Inspección',
+    'ui.back_to_camera': 'Volver a la cámara (Esc)',
+    'ui.map': 'Mapa',
   },
 }
 

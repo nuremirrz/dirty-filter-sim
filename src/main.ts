@@ -2,6 +2,9 @@ import { createScene } from './scene'
 import { loadModel } from './loader'
 import { applyStartCamera, initCameraMotion } from './cameras'
 import { createCameraStrip } from './camerastrip'
+import { createInspect } from './inspect'
+import { createBreadcrumbs } from './breadcrumbs'
+import { createMinimap } from './minimap'
 import { createHud } from './hud'
 import { createInteractions } from './interactive'
 import { createGrille } from './grille'
@@ -35,6 +38,11 @@ initCameraMotion(ctx)
 applyStartCamera(ctx)
 // Bottom camera strip: thumbnail per preset (stills captured after the load).
 const cameraStrip = createCameraStrip(ctx)
+// "Look closer" inspect view + top-center breadcrumbs that reflect the location.
+const inspect = createInspect(ctx)
+createBreadcrumbs(ctx, inspect)
+// Bottom-right minimap: top-down plan with station dots + camera marker.
+const minimap = createMinimap(ctx)
 // Shared props: the scripted buttons and direct clicks drive the same objects.
 const grille = createGrille(ctx)
 // The filter sits behind the grille, so it cannot be swapped until it is aside.
@@ -48,4 +56,5 @@ createInteractions(ctx, grille, filter, hud)
 loadModel(ctx, () => {
   hud.syncModel()
   cameraStrip.capture() // snapshot each preset now the model is in the scene
+  minimap.syncModel() // read station positions for the plan
 })
