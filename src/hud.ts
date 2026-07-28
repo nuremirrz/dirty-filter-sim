@@ -1,7 +1,6 @@
 import type { SceneContext } from './scene'
 import {
   StateMachine,
-  STATE_ORDER,
   AIRFLOW_READINGS,
   AIRFLOW_NORM_MIN,
   AIRFLOW_NORM_MAX,
@@ -10,22 +9,12 @@ import {
 } from './state'
 import { flyToCameraPresetByName, activeCameraPreset } from './cameras'
 import { createAnemometer } from './anemometer'
+import { createInfoPanel } from './infopanel'
 import type { GrilleApi } from './grille'
 import type { FilterApi } from './filter'
 import type { HintsApi } from './labels'
 import type { OverlayApi } from './overlay'
 import { t, onChange } from './i18n'
-
-const TOTAL_STEPS = STATE_ORDER.length - 1 // overview is setup, not a numbered step
-
-/** Formats a taken reading for the HUD block. */
-function anemometerReadout(reading: number): { value: string; color: string } {
-  const withinNorm = reading >= AIRFLOW_NORM_MIN && reading <= AIRFLOW_NORM_MAX
-  return {
-    value: t('hud.airflow', { value: reading }),
-    color: withinNorm ? '#4caf50' : '#f44336', // green when healthy, red when low
-  }
-}
 
 export interface HudApi {
   /** Re-applies model-dependent state; call once the GLB has finished loading. */
@@ -37,9 +26,10 @@ export interface HudApi {
 }
 
 /**
- * Builds the gameplay HUD (progress + hint + anemometer + action button) and
- * drives the Problem 1 state machine. Camera cuts and the level-complete
- * postMessage fire on the relevant state entries.
+ * Drives the Problem 1 state machine and the UI that reflects it: the left info
+ * panel (level, task checklist, hint, reading), the anemometer LCD, and the
+ * action button. Camera cuts and the level-complete postMessage fire on the
+ * relevant state entries.
  */
 export function createHud(
   ctx: SceneContext,
@@ -48,68 +38,30 @@ export function createHud(
   hints: HintsApi,
   overlay: OverlayApi,
 ): HudApi {
-  // --- Top-center: progress + hint + anemometer ---
-  const topPanel = document.createElement('div')
-  topPanel.style.cssText = [
-    'position:fixed',
-    'top:12px',
-    'left:50%',
-    'transform:translateX(-50%)',
-    'z-index:20',
-    'width:min(520px,90vw)',
-    'box-sizing:border-box',
-    'display:flex',
-    'flex-direction:column',
-    'align-items:center',
-    'gap:8px',
-    'padding:12px 16px',
-    'background:rgba(0,0,0,0.72)',
-    'border-radius:10px',
-    'color:#fff',
-    'text-align:center',
-    'font-family:system-ui,-apple-system,sans-serif',
-  ].join(';')
+  // --- Left info panel: level, task checklist, hint, reading ---
+  const infoPanel = createInfoPanel()
 
-  const progress = document.createElement('div')
-  progress.id = 'hud-progress'
-  progress.style.cssText = 'font-size:12px;color:#bbb'
-
-  const hint = document.createElement('div')
-  hint.id = 'hud-hint'
-  hint.style.cssText = 'font-size:16px;line-height:1.4'
-
-  const anemo = document.createElement('div')
-  anemo.id = 'hud-anemo'
-  anemo.style.cssText = 'display:none;flex-direction:column;gap:2px;margin-top:2px'
-  const anemoValue = document.createElement('div')
-  anemoValue.id = 'hud-anemo-value'
-  anemoValue.style.cssText = 'font-size:28px;font-weight:500'
-  const anemoNorm = document.createElement('div')
-  anemoNorm.style.cssText = 'font-size:12px;color:#bbb' // text set in paint() (locale-aware)
-  anemo.append(anemoValue, anemoNorm)
-
-  topPanel.append(progress, hint, anemo)
-
-  // --- Bottom-center: action button ---
+  // --- Bottom-center: action button (temporary flow bridge) ---
   const actionBtn = document.createElement('button')
   actionBtn.id = 'hud-action'
   actionBtn.style.cssText = [
     'position:fixed',
-    'bottom:24px',
+    'bottom:140px',
     'left:50%',
     'transform:translateX(-50%)',
     'z-index:20',
     'padding:12px 24px',
     'font-size:15px',
     'font-family:inherit',
-    'background:#2196f3',
+    'background:#2f6df6',
     'color:#fff',
     'border:none',
-    'border-radius:8px',
+    'border-radius:10px',
     'cursor:pointer',
+    'box-shadow:0 4px 14px rgba(47,109,246,0.35)',
   ].join(';')
 
-  document.body.append(topPanel, actionBtn)
+  document.body.appendChild(actionBtn)
 
   // --- State machine wiring ---
   const anemometer = createAnemometer(ctx)
@@ -119,22 +71,13 @@ export function createHud(
   let measured = false
 
   const paint = (state: GameState, data: StateData) => {
-    const step = STATE_ORDER.indexOf(state)
-    progress.textContent =
-      state === 'overview' ? t('hud.overview') : t('hud.step', { n: step, total: TOTAL_STEPS })
-    hint.textContent = t(data.hintKey)
-    anemoNorm.textContent = t('hud.norm', { min: AIRFLOW_NORM_MIN, max: AIRFLOW_NORM_MAX })
-
     const airflow = AIRFLOW_READINGS[state]
     const revealed = measured ? airflow : undefined
-    const readout = revealed === undefined ? null : anemometerReadout(revealed)
-    if (readout) {
-      anemoValue.textContent = readout.value
-      anemoValue.style.color = readout.color
-      anemo.style.display = 'flex'
-    } else {
-      anemo.style.display = 'none'
-    }
+    const reading =
+      revealed === undefined
+        ? null
+        : { value: revealed, ok: revealed >= AIRFLOW_NORM_MIN && revealed <= AIRFLOW_NORM_MAX }
+    infoPanel.update(state, reading)
 
     // Once the reading is on screen, the button's job changes to "move on".
     const label =
