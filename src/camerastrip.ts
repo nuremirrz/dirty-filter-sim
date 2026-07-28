@@ -31,8 +31,7 @@ export function createCameraStrip(ctx: SceneContext): CameraStripApi {
   strip.style.cssText = [
     'position:fixed',
     'bottom:16px',
-    'left:50%',
-    'transform:translateX(-50%)',
+    'left:16px',
     'z-index:20',
     'display:flex',
     'gap:10px',

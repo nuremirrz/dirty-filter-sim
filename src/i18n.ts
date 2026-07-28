@@ -62,6 +62,12 @@ const dict: Record<Lang, Record<string, Entry>> = {
     'ui.inspect': 'Inspect',
     'ui.back_to_camera': 'Back to camera (Esc)',
     'ui.map': 'Map',
+    'tool.inventory': 'Inventory',
+    'tool.suggested': 'SUGGESTED',
+    'tool.all': 'ALL',
+    'tool.anemometer': 'Anemometer',
+    'tool.clean_filter': 'Clean filter',
+    'tool.empty': 'Nothing to use right now',
   },
   ru: {
     'state.overview.hint': 'Осмотритесь. Начните с проверки подачи воздуха.',
@@ -110,6 +116,12 @@ const dict: Record<Lang, Record<string, Entry>> = {
     'ui.inspect': 'Осмотр',
     'ui.back_to_camera': 'Назад к камере (Esc)',
     'ui.map': 'Карта',
+    'tool.inventory': 'Инвентарь',
+    'tool.suggested': 'ПОДХОДЯЩИЕ',
+    'tool.all': 'ВСЕ',
+    'tool.anemometer': 'Анемометр',
+    'tool.clean_filter': 'Чистый фильтр',
+    'tool.empty': 'Сейчас нечего применить',
   },
   es: {
     'state.overview.hint': 'Observa el entorno. Empieza revisando el suministro de aire.',
@@ -158,6 +170,12 @@ const dict: Record<Lang, Record<string, Entry>> = {
     'ui.inspect': 'Inspección',
     'ui.back_to_camera': 'Volver a la cámara (Esc)',
     'ui.map': 'Mapa',
+    'tool.inventory': 'Inventario',
+    'tool.suggested': 'SUGERIDO',
+    'tool.all': 'TODOS',
+    'tool.anemometer': 'Anemómetro',
+    'tool.clean_filter': 'Filtro limpio',
+    'tool.empty': 'Nada que usar ahora',
   },
 }
 

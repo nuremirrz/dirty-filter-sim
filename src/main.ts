@@ -4,7 +4,7 @@ import { applyStartCamera, initCameraMotion } from './cameras'
 import { createCameraStrip } from './camerastrip'
 import { createInspect } from './inspect'
 import { createBreadcrumbs } from './breadcrumbs'
-import { createMinimap } from './minimap'
+import { createInventory } from './inventory'
 import { createHud } from './hud'
 import { createInteractions } from './interactive'
 import { createGrille } from './grille'
@@ -41,8 +41,6 @@ const cameraStrip = createCameraStrip(ctx)
 // "Look closer" inspect view + top-center breadcrumbs that reflect the location.
 const inspect = createInspect(ctx)
 createBreadcrumbs(ctx, inspect)
-// Bottom-right minimap: top-down plan with station dots + camera marker.
-const minimap = createMinimap(ctx)
 // Shared props: the scripted buttons and direct clicks drive the same objects.
 const grille = createGrille(ctx)
 // The filter sits behind the grille, so it cannot be swapped until it is aside.
@@ -53,8 +51,10 @@ const hints = createHints(ctx)
 const overlay = createResultOverlay()
 const hud = createHud(ctx, grille, filter, hints, overlay)
 createInteractions(ctx, grille, filter, hud)
+// Inventory drawer: drag a tool (anemometer / clean filter) onto its object.
+const inventory = createInventory(ctx, grille, filter, hud)
 loadModel(ctx, () => {
   hud.syncModel()
   cameraStrip.capture() // snapshot each preset now the model is in the scene
-  minimap.syncModel() // read station positions for the plan
+  inventory.syncModel() // render tool icons from the model
 })
