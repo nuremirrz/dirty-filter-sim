@@ -1,6 +1,7 @@
 import {
   activeCameraPreset,
   flyToCameraPresetByName,
+  type CameraPreset,
   type ClickTarget,
   type HudProgressBase,
   type LabelConfig,
@@ -12,6 +13,34 @@ import {
 } from '@hvac/engine'
 import type { GrilleApi } from './grille'
 import type { FilterApi } from './filter'
+
+// Fixed inspection viewpoints, named for the HVAC stage each one frames. The
+// coordinates belong to this level's model; the first is the starting camera.
+export const CAMERAS: CameraPreset[] = [
+  {
+    name: 'system_overview',
+    position: { x: 6.29, y: 1.6, z: -12.54 },
+    target: { x: 1.13, y: 2.98, z: 0.82 },
+  },
+  {
+    name: 'supply_air',
+    position: { x: 4.62, y: 1.43, z: -1.08 },
+    target: { x: 4.17, y: 2.84, z: 0.71 },
+  },
+  {
+    name: 'return_air',
+    position: { x: 2.05, y: 0.19, z: -0.34 },
+    target: { x: 2.05, y: 2.84, z: 0.71 },
+  },
+  {
+    name: 'air_filter',
+    position: { x: 2.01, y: 1.44, z: 0.68 },
+    target: { x: 2.01, y: 3.13, z: 0.71 },
+  },
+]
+
+// Stations you can look closer at — everything except the wide overview.
+export const INSPECTABLE = ['supply_air', 'return_air', 'air_filter']
 
 export type GameState =
   | 'overview'
