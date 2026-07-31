@@ -1,24 +1,47 @@
-import { createScene } from './scene'
-import { loadModel } from './loader'
-import { applyStartCamera, initCameraMotion } from './cameras'
-import { createCameraStrip } from './camerastrip'
-import { createInspect } from './inspect'
-import { createBreadcrumbs } from './breadcrumbs'
-import { createInventory } from './inventory'
-import { createHud } from './hud'
-import { createInteractions } from './interactive'
+import {
+  applyStartCamera,
+  createBreadcrumbs,
+  createCameraStrip,
+  createHints,
+  createHud,
+  createInspect,
+  createInteractions,
+  createInventory,
+  createResultOverlay,
+  createScene,
+  getInitialLang,
+  getLang,
+  initCameraMotion,
+  initLocaleBridge,
+  loadModel,
+  onChange,
+  registerDictionary,
+  setLang,
+  t,
+} from '@hvac/engine'
 import { createGrille } from './grille'
 import { createFilter } from './filter'
-import { createHints } from './labels'
-import { createResultOverlay } from './overlay'
-import { setLang, getInitialLang, initLocaleBridge, onChange, getLang, t } from './i18n'
+import { dict } from './dictionary'
+import {
+  LABELS,
+  TASKS,
+  createClickTargets,
+  createStateConfig,
+  createTools,
+  type GameState,
+  type TaskProgress,
+} from './level'
 
 const container = document.getElementById('app')
 if (!container) {
   throw new Error('Missing #app container in index.html')
 }
 
-// Locale first, before anything renders: ?lang=… sets the initial locale, and a
+// Dictionary first of all: the engine ships no strings, and registering does not
+// re-render what is already on screen — so nothing may call t() before this.
+registerDictionary(dict)
+
+// Locale next, before anything renders: ?lang=… sets the initial locale, and a
 // trusted embedding parent can switch it live over postMessage.
 setLang(getInitialLang())
 initLocaleBridge()
@@ -45,14 +68,24 @@ createBreadcrumbs(ctx, inspect)
 const grille = createGrille(ctx)
 // The filter sits behind the grille, so it cannot be swapped until it is aside.
 const filter = createFilter(ctx, () => grille.isOpen())
+// The flow's isDone/onAction close over the props, so it is built after them.
+const states = createStateConfig(ctx, grille, filter)
 // 3D labels + active-object highlight, driven by the HUD's state changes.
-const hints = createHints(ctx)
+const hints = createHints(ctx, LABELS)
 // Level-complete result card (shown on the final state; Restart reloads).
 const overlay = createResultOverlay()
-const hud = createHud(ctx, grille, filter, hints, overlay)
-createInteractions(ctx, grille, filter, hud)
+const hud = createHud<GameState, TaskProgress>(ctx, {
+  states,
+  tasks: TASKS,
+  isFaultCleared: () => filter.isReplaced(),
+  progress: (base) => ({ ...base, filterReplaced: filter.isReplaced() }),
+  slug: 'dirty-filter',
+  hints,
+  overlay,
+})
+createInteractions(ctx, { clickTargets: createClickTargets(grille, filter, hud) })
 // Inventory drawer: drag a tool (anemometer / clean filter) onto its object.
-const inventory = createInventory(ctx, grille, filter, hud)
+const inventory = createInventory(ctx, { tools: createTools(grille, filter, hud) })
 loadModel(ctx, () => {
   hud.syncModel()
   cameraStrip.capture() // snapshot each preset now the model is in the scene

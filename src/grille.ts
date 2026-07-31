@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { SceneContext } from './scene'
+import type { SceneContext } from '@hvac/engine'
 
 const GRILLE_NAME = 'return_grille'
 

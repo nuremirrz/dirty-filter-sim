@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { SceneContext } from './scene'
+import type { SceneContext } from '@hvac/engine'
 
 const FILTER_NAME = 'filter'
 
