@@ -1,6 +1,7 @@
 import {
   activeCameraPreset,
   flyToCameraPresetByName,
+  type AirflowVisual,
   type CameraPreset,
   type ClickTarget,
   type HudProgressBase,
@@ -36,6 +37,22 @@ export const CAMERAS: CameraPreset[] = [
 
 // Stations you can look closer at — everything except the wide overview.
 export const INSPECTABLE = ['supply_air', 'return_air']
+
+/**
+ * Airflow at the supply, in m/s: a dirty filter chokes it, a clean one restores
+ * it. One source of truth for both the device's reading and the visible stream.
+ */
+const FLOW_HEALTHY = 2.5
+const FLOW_CHOKED = 0.7
+
+export function createFlow(filter: FilterApi): () => number {
+  return () => (filter.isReplaced() ? FLOW_HEALTHY : FLOW_CHOKED)
+}
+
+/** The one visible stream on this level, off the same flow. */
+export function createAirflowConfig(flow: () => number): AirflowVisual[] {
+  return [{ objectName: 'supply_duct', flow }]
+}
 
 export type GameState =
   | 'overview'

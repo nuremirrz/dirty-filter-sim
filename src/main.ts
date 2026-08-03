@@ -1,5 +1,6 @@
 import {
   applyStartCamera,
+  createAirflowVisuals,
   createBreadcrumbs,
   createCameraStrip,
   createHints,
@@ -27,7 +28,9 @@ import {
   INSPECTABLE,
   LABELS,
   TASKS,
+  createAirflowConfig,
   createClickTargets,
+  createFlow,
   createStateConfig,
   createTools,
   type GameState,
@@ -72,6 +75,8 @@ const grille = createGrille(ctx)
 const filter = createFilter(ctx, () => grille.isOpen())
 // The flow's isDone/onAction close over the props, so it is built after them.
 const states = createStateConfig(ctx, grille, filter)
+// Airflow at the supply; the device and the visible stream share it.
+const flow = createFlow(filter)
 // 3D labels + active-object highlight, driven by the HUD's state changes.
 const hints = createHints(ctx, LABELS)
 // Level-complete result card (shown on the final state; Restart reloads).
@@ -79,12 +84,14 @@ const overlay = createResultOverlay()
 const hud = createHud<GameState, TaskProgress>(ctx, {
   states,
   tasks: TASKS,
-  reading: () => (filter.isReplaced() ? 2.5 : 0.7),
+  reading: flow,
   progress: (base) => ({ ...base, filterReplaced: filter.isReplaced() }),
   slug: 'dirty-filter',
   hints,
   overlay,
 })
+// Visible airflow out of the supply register.
+createAirflowVisuals(ctx, createAirflowConfig(flow))
 createInteractions(ctx, { clickTargets: createClickTargets(grille, filter, hud) })
 // Inventory drawer: drag a tool (anemometer / clean filter) onto its object.
 const inventory = createInventory(ctx, { tools: createTools(grille, filter, hud) })
