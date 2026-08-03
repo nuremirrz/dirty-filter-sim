@@ -32,15 +32,10 @@ export const CAMERAS: CameraPreset[] = [
     position: { x: 2.05, y: 0.19, z: -0.34 },
     target: { x: 2.05, y: 2.84, z: 0.71 },
   },
-  {
-    name: 'air_filter',
-    position: { x: 2.01, y: 1.44, z: 0.68 },
-    target: { x: 2.01, y: 3.13, z: 0.71 },
-  },
 ]
 
 // Stations you can look closer at — everything except the wide overview.
-export const INSPECTABLE = ['supply_air', 'return_air', 'air_filter']
+export const INSPECTABLE = ['supply_air', 'return_air']
 
 export type GameState =
   | 'overview'
@@ -174,10 +169,9 @@ export function createStateConfig(
         hintKey: 'state.complete.hint',
       },
     },
-    // Airflow at the supply, in m/s. It depends on the filter, not on the step: a
-    // dirty filter chokes the flow (low), a clean one restores it (healthy). The
-    // anemometer reads whichever is physically true at the moment you measure.
-    airflow: { low: 0.7, ok: 2.5, normMin: 2, normMax: 3.5 },
+    // Healthy band, in m/s. What the device actually reads is HudConfig.reading:
+    // a dirty filter chokes the flow (0.7), a clean one restores it (2.5).
+    airflow: { normMin: 2, normMax: 3.5 },
   }
 }
 
@@ -222,15 +216,10 @@ export function createClickTargets(
       canAct: () => hud.canTakeReading(),
     },
     { objectName: 'return_grille', preset: 'return_air', act: () => grille.toggle() },
-    // The filter sits right behind the grille, so the return camera already frames
-    // it — no point flying closer, but it is very much clickable from there.
-    // While the grille is shut it also blocks the ray, so it cannot be reached
-    // through a closed grille without any explicit check.
-    {
-      objectName: 'filter',
-      preset: 'air_filter',
-      redundantFrom: ['return_air'],
-      act: () => filter.replace(),
-    },
+    // The filter sits right behind the grille, so the return camera frames it
+    // already — that is its station, and a click from anywhere else travels
+    // there. While the grille is shut it also blocks the ray, so the filter
+    // cannot be reached through a closed grille without any explicit check.
+    { objectName: 'filter', preset: 'return_air', act: () => filter.replace() },
   ]
 }

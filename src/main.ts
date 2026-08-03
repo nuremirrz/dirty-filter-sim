@@ -79,7 +79,7 @@ const overlay = createResultOverlay()
 const hud = createHud<GameState, TaskProgress>(ctx, {
   states,
   tasks: TASKS,
-  isFaultCleared: () => filter.isReplaced(),
+  reading: () => (filter.isReplaced() ? 2.5 : 0.7),
   progress: (base) => ({ ...base, filterReplaced: filter.isReplaced() }),
   slug: 'dirty-filter',
   hints,
