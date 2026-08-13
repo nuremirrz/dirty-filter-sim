@@ -1,12 +1,10 @@
 import {
   activeCameraPreset,
-  flyToCameraPresetByName,
   type AirflowVisual,
   type CameraPreset,
   type ClickTarget,
   type HudProgressBase,
   type LabelConfig,
-  type SceneContext,
   type StateConfig,
   type TaskConfig,
   type Tool,
@@ -96,13 +94,18 @@ export const TASKS: TaskConfig<TaskProgress>[] = [
 /**
  * Ordered flow for Problem 1 (dirty filter).
  *
- * Each `onAction` closes over the level's own props, changes the world and then
- * moves the flow on itself — the engine never sees a grille or a filter.
- * `isDone` covers the other route: a direct click on the object in the scene
- * changes the same world, and the poll picks it up.
+ * The flow advances from the world alone: `isDone` closes over the level's own
+ * props and the poll picks up whatever the player did — a click on the object, a
+ * tool dragged onto it, a jump via the camera strip. No step hands out a button
+ * that performs its goal, so the hint says what to look for and finding it is
+ * the player's job.
+ *
+ * The measuring steps are the exception, and not by choice: a reading has to be
+ * read before the flow moves off it, so the engine keeps a "continue" button on
+ * screen for as long as one is displayed. `measure_low` still needs `onAction`
+ * for that press — it is where the skip-ahead branch lives.
  */
 export function createStateConfig(
-  ctx: SceneContext,
   grille: GrilleApi,
   filter: FilterApi,
 ): StateConfig<GameState> {
@@ -121,17 +124,13 @@ export function createStateConfig(
       overview: {
         hintKey: 'state.overview.hint',
         cameraPreset: 'system_overview',
-        btnKey: 'state.overview.btn',
+        // Getting to the supply is the step: click the register or take the
+        // camera strip there.
         isDone: () => activeCameraPreset() === 'supply_air',
-        onAction: (flow) => {
-          flyToCameraPresetByName(ctx, 'supply_air')
-          flow.advance()
-        },
       },
       measure_low: {
         hintKey: 'state.measure_low.hint',
         cameraPreset: 'supply_air',
-        btnKey: 'state.measure.btn',
         measuring: true,
         // If the airflow already reads healthy, the filter was fixed before
         // diagnosing — the problem is solved, so skip straight to the finish.
@@ -139,46 +138,24 @@ export function createStateConfig(
       },
       locate_grille: {
         hintKey: 'state.locate_grille.hint',
-        btnKey: 'state.locate_grille.btn',
         isDone: () => activeCameraPreset() === 'return_air',
-        onAction: (flow) => {
-          flyToCameraPresetByName(ctx, 'return_air')
-          flow.advance()
-        },
       },
       open_grille: {
         hintKey: 'state.open_grille.hint',
         cameraPreset: 'return_air',
-        btnKey: 'state.open_grille.btn',
         isDone: () => grille.isOpen(),
-        onAction: (flow) => {
-          grille.open()
-          flow.advance()
-        },
       },
       replace_filter: {
         hintKey: 'state.replace_filter.hint',
-        btnKey: 'state.replace_filter.btn',
         isDone: () => filter.isReplaced(),
-        onAction: (flow) => {
-          filter.replace()
-          flow.advance()
-        },
       },
       close_grille: {
         hintKey: 'state.close_grille.hint',
-        btnKey: 'state.close_grille.btn',
         isDone: () => grille.isClosed(),
-        onAction: (flow) => {
-          grille.close()
-          flow.advance()
-        },
       },
       measure_ok: {
-        // Shares the button key with measure_low — one "Measure" label, no dupe.
         hintKey: 'state.measure_ok.hint',
         cameraPreset: 'supply_air',
-        btnKey: 'state.measure.btn',
         measuring: true,
         // Just moves on; the level completes on the next state.
       },

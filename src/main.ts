@@ -73,8 +73,8 @@ createBreadcrumbs(ctx, inspect)
 const grille = createGrille(ctx)
 // The filter sits behind the grille, so it cannot be swapped until it is aside.
 const filter = createFilter(ctx, () => grille.isOpen())
-// The flow's isDone/onAction close over the props, so it is built after them.
-const states = createStateConfig(ctx, grille, filter)
+// The flow's isDone closes over the props, so it is built after them.
+const states = createStateConfig(grille, filter)
 // Airflow at the supply; the device and the visible stream share it.
 const flow = createFlow(filter)
 // 3D labels + active-object highlight, driven by the HUD's state changes.
