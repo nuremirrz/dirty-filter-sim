@@ -5,6 +5,7 @@ import {
   type ClickTarget,
   type HudProgressBase,
   type LabelConfig,
+  type SceneContext,
   type StateConfig,
   type TaskConfig,
   type Tool,
@@ -15,26 +16,52 @@ import type { FilterApi } from './filter'
 
 // Fixed inspection viewpoints, named for the HVAC stage each one frames. The
 // coordinates belong to this level's model; the first is the starting camera.
+//
+// Re-aimed for House_final.glb. The registers kept their size and their 2.84
+// ceiling height, so each station keeps the framing it had: the camera offsets
+// relative to the object each one looks at are the old ones, applied to the new
+// positions. Only the wide shot needed fresh numbers — the house is deep now
+// (7.7 across Z, was 4.85), not the near-flat slab the old one was.
 export const CAMERAS: CameraPreset[] = [
   {
     name: 'system_overview',
-    position: { x: 6.29, y: 1.6, z: -12.54 },
-    target: { x: 1.13, y: 2.98, z: 0.82 },
+    position: { x: 7, y: 6.5, z: -19 },
+    target: { x: 3.4, y: 1.4, z: 0.7 },
   },
   {
     name: 'supply_air',
-    position: { x: 4.62, y: 1.43, z: -1.08 },
-    target: { x: 4.17, y: 2.84, z: 0.71 },
+    position: { x: 7.27, y: 1.43, z: -1.07 },
+    target: { x: 6.82, y: 2.84, z: 0.72 },
   },
   {
+    // Offset from the grille rather than straight under it. Dead underneath is
+    // the prettier shot, but the filter sits recessed above the ceiling: from
+    // there the opening's edge hides all but a sliver of it, and the player has
+    // to hunt for somewhere to click. Standing off to -X opens the recess up.
     name: 'return_air',
-    position: { x: 2.05, y: 0.19, z: -0.34 },
-    target: { x: 2.05, y: 2.84, z: 0.71 },
+    position: { x: 4.0, y: 0.9, z: -1.6 },
+    target: { x: 5.29, y: 2.84, z: 0.72 },
   },
 ]
 
 // Stations you can look closer at — everything except the wide overview.
 export const INSPECTABLE = ['supply_air', 'return_air']
+
+/**
+ * Props that ship in the shared house model but belong to another level's
+ * problem. The closet is Problem 2's blockage; it stands right beside the
+ * return, so here it only crowds the view of the grille the player has to
+ * open. Hidden rather than cut from the GLB, which the other levels still need.
+ */
+const FOREIGN_PROPS = ['closet']
+
+/** Hides the other levels' props. Call once the model has loaded. */
+export function hideForeignProps(ctx: SceneContext): void {
+  for (const name of FOREIGN_PROPS) {
+    const obj = ctx.scene.getObjectByName(name)
+    if (obj) obj.visible = false
+  }
+}
 
 /**
  * Airflow at the supply, in m/s: a dirty filter chokes it, a clean one restores
@@ -49,7 +76,7 @@ export function createFlow(filter: FilterApi): () => number {
 
 /** The one visible stream on this level, off the same flow. */
 export function createAirflowConfig(flow: () => number): AirflowVisual[] {
-  return [{ objectName: 'supply_duct', flow }]
+  return [{ objectName: 'supply_bedroom1', flow }]
 }
 
 export type GameState =
@@ -70,7 +97,7 @@ export interface TaskProgress extends HudProgressBase {
 // GLB object each label rides on, its i18n key, and the steps it lights up on.
 export const LABELS: LabelConfig[] = [
   {
-    objectName: 'supply_duct',
+    objectName: 'supply_bedroom1',
     labelKey: 'label.supply',
     activeOnStates: ['measure_low', 'measure_ok'],
   },
@@ -79,7 +106,7 @@ export const LABELS: LabelConfig[] = [
     labelKey: 'label.return',
     activeOnStates: ['locate_grille', 'open_grille', 'close_grille'],
   },
-  { objectName: 'filter', labelKey: 'label.filter', activeOnStates: ['replace_filter'] },
+  { objectName: 'cap_2', labelKey: 'label.filter', activeOnStates: ['replace_filter'] },
 ]
 
 // The checklist is keyed to real accomplishments, not the flow's position, so a
@@ -177,16 +204,16 @@ export function createTools(grille: GrilleApi, filter: FilterApi, hud: ReadingTa
       labelKey: 'tool.anemometer',
       iconNode: 'anemometer',
       // The device parks on the supply grille while measuring, so accept either.
-      targetNodes: ['supply_duct', 'anemometer'],
+      targetNodes: ['supply_bedroom1', 'anemometer'],
       usable: () => hud.canTakeReading(),
       apply: () => hud.takeReading(),
     },
     {
       id: 'filter',
       labelKey: 'tool.clean_filter',
-      iconNode: 'filter',
+      iconNode: 'cap_2',
       iconColor: 0xf0f0f0, // show it as the clean spare
-      targetNodes: ['filter'],
+      targetNodes: ['cap_2'],
       usable: () => grille.isOpen() && !filter.isReplaced(),
       apply: () => filter.replace(),
     },
@@ -200,7 +227,7 @@ export function createClickTargets(
   hud: ReadingTaker,
 ): ClickTarget[] {
   return [
-    { objectName: 'supply_duct', preset: 'supply_air' },
+    { objectName: 'supply_bedroom1', preset: 'supply_air' },
     // The device only exists while measuring, and the step already parks the
     // camera on it — so a click is always its own button, never a trip.
     {
@@ -214,6 +241,6 @@ export function createClickTargets(
     // already — that is its station, and a click from anywhere else travels
     // there. While the grille is shut it also blocks the ray, so the filter
     // cannot be reached through a closed grille without any explicit check.
-    { objectName: 'filter', preset: 'return_air', act: () => filter.replace() },
+    { objectName: 'cap_2', preset: 'return_air', act: () => filter.replace() },
   ]
 }

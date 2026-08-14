@@ -1,7 +1,10 @@
 import * as THREE from 'three'
 import type { SceneContext } from '@hvac/engine'
 
-const FILTER_NAME = 'filter'
+// The filter panel sits in the housing above the return grille. House_final.glb
+// names the panels behind each grille cap_N; cap_2 is the one over the return,
+// and it carries the same 1.09 × 0.64 footprint the old `filter` node had.
+const FILTER_NAME = 'cap_2'
 
 // The filter sits in a ceiling housing, so it comes straight down out of the
 // opening rather than sideways: dirty drops out, clean rises back up into it.

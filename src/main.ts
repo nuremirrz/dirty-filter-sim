@@ -33,6 +33,7 @@ import {
   createFlow,
   createStateConfig,
   createTools,
+  hideForeignProps,
   type GameState,
   type TaskProgress,
 } from './level'
@@ -61,7 +62,11 @@ onChange(applyDocumentMeta)
 
 // Boot the scene, start on the overview camera (before the first frame), mount
 // the gameplay HUD, then load the model.
-const ctx = createScene(container, { cameras: CAMERAS, inspectable: INSPECTABLE })
+const ctx = createScene(container, {
+  cameras: CAMERAS,
+  inspectable: INSPECTABLE,
+  model: 'House_final.glb',
+})
 initCameraMotion(ctx)
 applyStartCamera(ctx)
 // Bottom camera strip: thumbnail per preset (stills captured after the load).
@@ -96,6 +101,7 @@ createInteractions(ctx, { clickTargets: createClickTargets(grille, filter, hud) 
 // Inventory drawer: drag a tool (anemometer / clean filter) onto its object.
 const inventory = createInventory(ctx, { tools: createTools(grille, filter, hud) })
 loadModel(ctx, () => {
+  hideForeignProps(ctx) // the closet belongs to Problem 2, not to this one
   hud.syncModel()
   cameraStrip.capture() // snapshot each preset now the model is in the scene
   inventory.syncModel() // render tool icons from the model
