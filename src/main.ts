@@ -34,6 +34,7 @@ import {
   createStateConfig,
   createTools,
   hideForeignProps,
+  lockCameraOnStations,
   type GameState,
   type TaskProgress,
 } from './level'
@@ -69,6 +70,9 @@ const ctx = createScene(container, {
 })
 initCameraMotion(ctx)
 applyStartCamera(ctx)
+// Supply/Return are fixed, framed shots — lock the mouse from spinning or zooming
+// them away (Bug Fix); the wide overview stays free to look around.
+lockCameraOnStations(ctx, ['supply_air', 'return_air'])
 // Bottom camera strip: thumbnail per preset (stills captured after the load).
 const cameraStrip = createCameraStrip(ctx)
 // "Look closer" inspect view + top-center breadcrumbs that reflect the location.

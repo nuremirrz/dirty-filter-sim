@@ -20,6 +20,54 @@ const CLEAN_COLOR = 0xf0f0f0
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t)
 
+// The dirty panel's look, painted into a canvas so the grime lives in the
+// texture rather than the model: a dusty tan field, a dark stain blooming out of
+// the centre (where the return pulls air through and dust cakes up), and a
+// scatter of specks so it reads as filthy, not merely tinted.
+const DIRTY_BASE = '#b0a488' // dusty tan field
+const STAIN_CORE = 'rgba(38, 30, 22, 0.94)' // near-black at the centre
+const STAIN_MID = 'rgba(74, 60, 44, 0.55)'
+const STAIN_EDGE = 'rgba(120, 104, 80, 0)' // fades into the field
+
+/**
+ * Builds the dirty filter's surface as a CanvasTexture: tan base, a central
+ * radial stain, and low-alpha speckle for grime. Drawn once and reused.
+ */
+function makeDirtyTexture(): THREE.Texture {
+  const size = 256
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const cx = canvas.getContext('2d')!
+
+  cx.fillStyle = DIRTY_BASE
+  cx.fillRect(0, 0, size, size)
+
+  // Grime speckle: many small, faint dark dots spread across the field.
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * size
+    const y = Math.random() * size
+    const r = 1 + Math.random() * 3
+    cx.fillStyle = `rgba(60, 48, 36, ${0.05 + Math.random() * 0.12})`
+    cx.beginPath()
+    cx.arc(x, y, r, 0, Math.PI * 2)
+    cx.fill()
+  }
+
+  // Central stain: a dark bloom, densest at the middle, fading into the field.
+  const half = size / 2
+  const stain = cx.createRadialGradient(half, half, size * 0.04, half, half, size * 0.46)
+  stain.addColorStop(0, STAIN_CORE)
+  stain.addColorStop(0.5, STAIN_MID)
+  stain.addColorStop(1, STAIN_EDGE)
+  cx.fillStyle = stain
+  cx.fillRect(0, 0, size, size)
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  return texture
+}
+
 export interface FilterApi {
   /** Draws the dirty filter out and slides a clean one in. Runs once. */
   replace: () => void
@@ -34,6 +82,32 @@ function paintClean(obj: THREE.Object3D): void {
     const source = Array.isArray(child.material) ? child.material[0] : child.material
     const material = source.clone() as THREE.Material & { color?: THREE.Color }
     if (material.color) material.color.setHex(CLEAN_COLOR)
+    child.material = material
+  })
+}
+
+/**
+ * Gives the panel its own grimy material — the dusty texture with the centre
+ * stain — so it plainly reads as the dirty filter next to the clean white spare.
+ * Clones the material like paintClean, leaving the shared model one untouched.
+ */
+function paintDirty(obj: THREE.Object3D): void {
+  const map = makeDirtyTexture()
+  obj.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return
+    const source = Array.isArray(child.material) ? child.material[0] : child.material
+    const material = source.clone() as THREE.Material & {
+      color?: THREE.Color
+      map?: THREE.Texture | null
+      roughness?: number
+      metalness?: number
+    }
+    // White base so the texture's own colours show true; matte, like fabric.
+    if (material.color) material.color.setHex(0xffffff)
+    if ('map' in material) material.map = map
+    if (typeof material.roughness === 'number') material.roughness = 1
+    if (typeof material.metalness === 'number') material.metalness = 0
+    material.needsUpdate = true
     child.material = material
   })
 }
@@ -72,6 +146,10 @@ export function createFilter(ctx: SceneContext, canReplace: () => boolean): Filt
     // Added as a sibling so it shares the original's parent transform.
     found.parent.add(spare)
     clean = spare
+
+    // Dirty the original last, once the clean spare is already cloned from it —
+    // so the stain texture lands only on the dirty panel, never the clean one.
+    paintDirty(dirty)
   }
 
   ctx.onFrame((dt) => {

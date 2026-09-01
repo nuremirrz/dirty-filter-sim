@@ -29,17 +29,20 @@ export const CAMERAS: CameraPreset[] = [
     target: { x: 3.4, y: 1.4, z: 0.7 },
   },
   {
+    // Pulled in close along the same view axis (Bug Fix: zoom the supply so the
+    // anemometer's LCD reads clearly), aimed at the same register.
     name: 'supply_air',
-    position: { x: 7.27, y: 1.43, z: -1.07 },
+    position: { x: 6.98, y: 2.35, z: 0.09 },
     target: { x: 6.82, y: 2.84, z: 0.72 },
   },
   {
-    // Offset from the grille rather than straight under it. Dead underneath is
-    // the prettier shot, but the filter sits recessed above the ceiling: from
-    // there the opening's edge hides all but a sliver of it, and the player has
-    // to hunt for somewhere to click. Standing off to -X opens the recess up.
+    // Fixed bottom-up shot of the return (Bug Fix, Screen 2): the camera sits
+    // centered under the grille (same X as its target) and looks straight up.
+    // Kept a touch to the room side (−Z) and off dead-vertical, so the look-up
+    // stays stable and the recessed filter above the opening still shows through
+    // the edge rather than being hidden by it.
     name: 'return_air',
-    position: { x: 4.0, y: 0.9, z: -1.6 },
+    position: { x: 5.29, y: 0.85, z: -0.15 },
     target: { x: 5.29, y: 2.84, z: 0.72 },
   },
 ]
@@ -61,6 +64,23 @@ export function hideForeignProps(ctx: SceneContext): void {
     const obj = ctx.scene.getObjectByName(name)
     if (obj) obj.visible = false
   }
+}
+
+/**
+ * Locks OrbitControls (rotate/zoom/pan) while the camera is parked on a fixed
+ * station, so the framed shot can't be spun or zoomed away — the anemometer's
+ * numbers stay readable and the return keeps its fixed low angle (Bug Fix). The
+ * wide overview stays free to look around. Scripted moves (camera strip, inspect,
+ * object clicks) don't go through OrbitControls, so navigation is unaffected.
+ */
+export function lockCameraOnStations(ctx: SceneContext, stations: string[]): void {
+  const fixed = new Set(stations)
+  ctx.onFrame(() => {
+    const locked = fixed.has(activeCameraPreset() ?? '')
+    ctx.controls.enableRotate = !locked
+    ctx.controls.enableZoom = !locked
+    ctx.controls.enablePan = !locked
+  })
 }
 
 /**
